@@ -1,8 +1,18 @@
 import { useState } from 'react';
 import Logo from './Logo';
+import ForgotPassword from './ForgotPassword';
 
-const LoginForm = () => {
+const LoginForm = ({ onToggle }) => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  if (showForgotPassword) {
+    return <ForgotPassword onReturn={() => setShowForgotPassword(false)} />;
+  }
 
   return (
     <div className="p-8 absolute flex flex-col justify-center backface-hidden bg-white rounded-2xl gap-5 shadow-lg w-full">
@@ -41,9 +51,13 @@ const LoginForm = () => {
         >
           LOGIN
         </button>
-        <div className="text-center">
-          <a href="#" className="text-blue-600 text-sm">Forgot your password?</a>
-        </div>
+        <button
+          type="button"
+          onClick={() => setShowForgotPassword(true)}
+          className="text-blue-500 text-sm hover:underline"
+        >
+          Forgot Password?
+        </button>
       </form>
     </div>
   );

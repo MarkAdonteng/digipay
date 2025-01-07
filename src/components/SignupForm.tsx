@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Logo from './Logo';
 import OTPInput from './OTPInput';
+import { createUser } from '../api/auth';
 
 // Mnotify API key
 const MNOTIFY_API_KEY = 'TUX6IqmI8FGQEjY2isJROxxCP';
@@ -14,7 +15,7 @@ const securityQuestions = [
   "What was your childhood nickname?",
 ];
 
-const SignupForm = () => {
+const SignupForm = (props) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [showOTP, setShowOTP] = useState(false);
   const [error, setError] = useState('');
@@ -35,6 +36,7 @@ const SignupForm = () => {
     message: ''
   });
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const { onToggle } = props;
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
@@ -189,11 +191,32 @@ const SignupForm = () => {
     }
   };
 
-  const handleSecuritySubmit = (e: React.FormEvent) => {
+  const handleSecuritySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle security form submission
-    console.log('Security form submitted:', { securityQuestion, securityAnswer });
-    setShowSuccessModal(true);
+    setLoading(true);
+    setError('');
+
+    try {
+      const userData = {
+        username,
+        password,
+        phone_number: phoneNumber.replace(/\D/g, ''),
+        security_question: securityQuestion,
+        security_answer: securityAnswer
+      };
+
+      await createUser(userData);
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.error('Error creating user:', error);
+      setError(
+        error instanceof Error 
+          ? error.message 
+          : 'Failed to create account. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Check password strength
@@ -428,7 +451,10 @@ const SignupForm = () => {
             <h3 className="text-2xl font-semibold text-[#0066BE] mb-2">Success</h3>
             <p className="text-gray-600 mb-6">Account created successfully</p>
             <button
-              onClick={() => setShowSuccessModal(false)}
+              onClick={() => {
+                setShowSuccessModal(false);
+                onToggle();
+              }}
               className="w-full bg-[#FFD600] text-black rounded-full py-2 px-4 font-medium hover:opacity-90 transition-opacity"
             >
               OK

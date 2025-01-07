@@ -5,7 +5,7 @@ import CardContainer from './components/CardContainer';
 
 function App() {
   const [isChecked, setIsChecked] = useState(false);
-  
+   
   return (
     <div className="min-h-screen bg-white flex items-center justify-center relative overflow-hidden">
       <Background />
