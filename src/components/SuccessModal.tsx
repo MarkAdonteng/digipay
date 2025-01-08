@@ -23,11 +23,11 @@ const SuccessModal = ({ title, message, onClose }: SuccessModalProps) => {
             />
           </svg>
         </div>
-        <h3 className="text-2xl font-semibold text-[#0066BE] mb-2">{title}</h3>
+        <h3 className="text-heading-2 text-primary mb-2">{title}</h3>
         <p className="text-gray-600 mb-6">{message}</p>
         <button
           onClick={onClose}
-          className="w-full bg-[#FFD600] text-black rounded-full py-2 px-4 font-medium hover:opacity-90 transition-opacity"
+          className="w-full bg-secondary text-black rounded-full py-2 px-4 font-medium hover:opacity-90 transition-opacity"
         >
           OK
         </button>

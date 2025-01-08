@@ -3,6 +3,8 @@ import Logo from './Logo';
 import OTPInput from './OTPInput';
 import { createUser } from '../api/auth';
 import SuccessModal from './SuccessModal';
+import ErrorModal from './ErrorModal';
+import Loader from './Loader';
 
 // Mnotify API key
 const MNOTIFY_API_KEY = 'TUX6IqmI8FGQEjY2isJROxxCP';
@@ -24,6 +26,7 @@ const SignupForm = (props) => {
   const [timeLeft, setTimeLeft] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const [currentOTP, setCurrentOTP] = useState('');
+  const [enteredOTP, setEnteredOTP] = useState('');
   const [isVerified, setIsVerified] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -37,7 +40,10 @@ const SignupForm = (props) => {
     message: ''
   });
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const { onToggle } = props;
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
@@ -173,26 +179,45 @@ const SignupForm = (props) => {
   };
 
   const handleOTPComplete = (otp: string) => {
-    setError('');
-    setLoading(true);
-
-    try {
-      if (otp === currentOTP) {
-        // Handle successful verification
-        console.log('Phone number verified successfully');
-        setIsVerified(true);
-      } else {
-        setError('Invalid OTP');
-      }
-    } catch (err) {
-      setError('Verification failed');
-    } finally {
-      setLoading(false);
-    }
+    setEnteredOTP(otp);
+    // Don't automatically verify when OTP is entered
+    // Let the user click the verify button
   };
 
   const handleCredentialsSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage('');
+
+    // Check if username is entered
+    if (!username.trim()) {
+      setErrorMessage('Please enter a username');
+      setShowErrorModal(true);
+      return;
+    }
+
+    // Check if password is entered
+    if (!password) {
+      setErrorMessage('Please enter a password');
+      setShowErrorModal(true);
+      return;
+    }
+
+    // Check password strength
+    const strengthScore = checkPasswordStrength(password);
+    
+    if (strengthScore.score < 3) {
+      setErrorMessage(
+        'Password is too weak. Password must contain at least:\n' +
+        '- 8 characters\n' +
+        '- One uppercase letter\n' +
+        '- One lowercase letter\n' +
+        '- One number\n' +
+        '- One special character'
+      );
+      setShowErrorModal(true);
+      return;
+    }
+
     if (username && password) {
       setShowSecurityForm(true);
     }
@@ -200,7 +225,7 @@ const SignupForm = (props) => {
 
   const handleSecuritySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setIsSubmitting(true);
     setError('');
 
     try {
@@ -216,18 +241,19 @@ const SignupForm = (props) => {
       setShowSuccessModal(true);
     } catch (error) {
       console.error('Error creating user:', error);
-      setError(
+      setErrorMessage(
         error instanceof Error 
           ? error.message 
           : 'Failed to create account. Please try again.'
       );
+      setShowErrorModal(true);
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  // Check password strength
-  const checkPasswordStrength = (pass: string) => {
+  // Modify checkPasswordStrength to return the score
+  const checkPasswordStrength = (pass: string): { score: number; message: string } => {
     // Initialize score
     let score = 0;
     
@@ -262,6 +288,7 @@ const SignupForm = (props) => {
     }
 
     setPasswordStrength({ score, message });
+    return { score, message };
   };
 
   // Update password strength when password changes
@@ -271,17 +298,44 @@ const SignupForm = (props) => {
     checkPasswordStrength(newPassword);
   };
 
+  const handleVerifyClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setErrorMessage('');
+    
+    if (!enteredOTP) {
+      setErrorMessage('Please enter the verification code');
+      setShowErrorModal(true);
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      if (enteredOTP === currentOTP) {
+        console.log('Phone number verified successfully');
+        setIsVerified(true);
+      } else {
+        setErrorMessage('Invalid verification code');
+        setShowErrorModal(true);
+      }
+    } catch (err) {
+      setErrorMessage('Verification failed');
+      setShowErrorModal(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSuccessModalClose = () => {
+    setShowSuccessModal(false);
+    // Toggle to login form
+    onToggle();
+  };
+
   return (
     <div className="p-8 absolute flex flex-col justify-center backface-hidden bg-white rounded-2xl gap-5 shadow-lg w-full rotate-y-180">
       <Logo />
       <h2 className="text-center text-sm mb-4">MoMo Merchant/Agent Onboarding Portal</h2>
       
-      {error && (
-        <div className="text-red-500 text-sm text-center mb-4">
-          {error}
-        </div>
-      )}
-
       {!showOTP && !isVerified ? (
         <form onSubmit={handlePhoneSubmit} className="flex flex-col items-center gap-6">
           <div className="w-full">
@@ -404,7 +458,8 @@ const SignupForm = (props) => {
           </p>
           <button 
             type="submit"
-            className="w-full bg-black text-white rounded-full py-3 text-sm hover:opacity-90 transition-opacity"
+            disabled={isSubmitting}
+            className="w-full bg-black text-white rounded-full py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             SIGN UP
           </button>
@@ -415,7 +470,7 @@ const SignupForm = (props) => {
           <p className="text-sm text-gray-600">
             Please enter the 6 digit code that has been sent to {phoneNumber}. The code expires in {formatTime(timeLeft)}s
           </p>
-          <OTPInput onComplete={handleOTPComplete} />
+          <OTPInput onComplete={(otp) => handleOTPComplete(otp)} />
           <div className="text-center">
             <p className="text-sm text-gray-600 mb-2">Didn't receive code?</p>
             <button
@@ -427,11 +482,11 @@ const SignupForm = (props) => {
             </button>
           </div>
           <button 
-            onClick={() => handleOTPComplete(currentOTP)}
+            onClick={handleVerifyClick}
             disabled={loading}
             className="w-full bg-black text-white rounded-full py-3 text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            VERIFY
+            {loading ? 'Verifying...' : 'VERIFY'}
           </button>
         </div>
       )}
@@ -441,12 +496,18 @@ const SignupForm = (props) => {
         <SuccessModal
           title="Success"
           message="Account created successfully"
-          onClose={() => {
-            setShowSuccessModal(false);
-            onToggle();
-          }}
+          onClose={handleSuccessModalClose}
         />
       )}
+
+      {showErrorModal && (
+        <ErrorModal
+          message={errorMessage}
+          onClose={() => setShowErrorModal(false)}
+        />
+      )}
+
+      {isSubmitting && <Loader />}
     </div>
   );
 };
