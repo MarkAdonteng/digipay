@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Logo from './Logo';
 import OTPInput from './OTPInput';
 import { createUser } from '../api/auth';
+import SuccessModal from './SuccessModal';
 
 // Mnotify API key
 const MNOTIFY_API_KEY = 'TUX6IqmI8FGQEjY2isJROxxCP';
@@ -70,24 +71,27 @@ const SignupForm = (props) => {
 
   const sendOTPViaMnotify = async (phone: string, otp: string) => {
     try {
+      // For development/testing - always return success and log the OTP
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Development mode - Simulated OTP:', otp);
+        console.log('Would have sent to phone:', phone);
+        return true;
+      }
+
       const message = `Your verification code is: ${otp}. The code expires in 60 seconds`;
       const url = 'https://apps.mnotify.net/smsapi';
       
-      // Format phone number to remove any '+' and ensure it starts with '233'
       const formattedPhone = phone.replace('+', '').trim();
       
       const formData = new URLSearchParams();
-      formData.append('key', MNOTIFY_API_KEY);
+      formData.append('key', 'TUX6IqmI8FGQEjY2isJROxxCP');
       formData.append('to', formattedPhone);
       formData.append('msg', message);
       formData.append('sender_id', 'JCL LODGE');
-      formData.append('type', '0');  // Added type parameter
-      formData.append('schedule_date', '');  // Added empty schedule_date
+      formData.append('type', '0');
+      formData.append('schedule_date', '');
       
-      console.log('Attempting to send OTP:');
-      console.log('To:', formattedPhone);
-      console.log('Message:', message);
-      console.log('Request body:', formData.toString());
+      console.log('Attempting to send OTP to:', formattedPhone);
       
       const response = await fetch(url, {
         method: 'POST',
@@ -98,19 +102,22 @@ const SignupForm = (props) => {
         body: formData.toString()
       });
 
-      const data = await response.json();
-      console.log('Full Mnotify response:', data);
-      
-      // Check both code and status, and also check if the response includes a message ID
-      if (data.code === '1000' && data.status === 'success' && data.message) {
-        console.log('SMS sent successfully. Message ID:', data.message);
-        return true;
-      } else {
-        console.error('Mnotify error:', data);
-        return false;
+      if (!response.ok) {
+        throw new Error('Failed to send OTP');
       }
+
+      const data = await response.json();
+      console.log('Mnotify API response:', data);
+      
+      return data.code === '1000' && data.status === 'success';
     } catch (error) {
       console.error('Error sending OTP:', error);
+      // For development/testing - return success even if API fails
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Development mode - Proceeding despite API error');
+        console.log('Simulated OTP:', otp);
+        return true;
+      }
       return false;
     }
   };
@@ -431,36 +438,14 @@ const SignupForm = (props) => {
 
       {/* Success Modal */}
       {showSuccessModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-sm w-full mx-4 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full border-4 border-green-200 flex items-center justify-center">
-              <svg 
-                className="w-8 h-8 text-green-500" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth="2" 
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-            <h3 className="text-2xl font-semibold text-[#0066BE] mb-2">Success</h3>
-            <p className="text-gray-600 mb-6">Account created successfully</p>
-            <button
-              onClick={() => {
-                setShowSuccessModal(false);
-                onToggle();
-              }}
-              className="w-full bg-[#FFD600] text-black rounded-full py-2 px-4 font-medium hover:opacity-90 transition-opacity"
-            >
-              OK
-            </button>
-          </div>
-        </div>
+        <SuccessModal
+          title="Success"
+          message="Account created successfully"
+          onClose={() => {
+            setShowSuccessModal(false);
+            onToggle();
+          }}
+        />
       )}
     </div>
   );

@@ -39,9 +39,9 @@ app.post('/api/users/verify-phone', async (req, res) => {
     const result = await client.query(query, [localPhoneNumber]);
     
     if (result.rows.length === 0) {
-      return res.status(404).json({
+      return res.status(400).json({
         success: false,
-        message: 'Phone number not found'
+        message: 'This phone number is not registered in our system'
       });
     }
 
