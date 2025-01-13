@@ -18,7 +18,13 @@ const securityQuestions = [
   "What was your childhood nickname?",
 ];
 
-const SignupForm = (props) => {
+// Add prop interface
+interface SignupFormProps {
+  onToggle: () => void;
+}
+
+// Update component definition to accept props
+const SignupForm = ({ onToggle }: SignupFormProps) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [showOTP, setShowOTP] = useState(false);
   const [error, setError] = useState('');
@@ -42,7 +48,6 @@ const SignupForm = (props) => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const { onToggle } = props;
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -332,7 +337,7 @@ const SignupForm = (props) => {
   };
 
   return (
-    <div className="p-8 absolute flex flex-col justify-center backface-hidden bg-white rounded-2xl gap-5 shadow-lg w-full rotate-y-180">
+    <div className="p-8 absolute flex flex-col justify-center bg-white rounded-2xl gap-5 shadow-lg w-full top-56">
       <Logo />
       <h2 className="text-center text-sm mb-4">MoMo Merchant/Agent Onboarding Portal</h2>
       

@@ -107,4 +107,47 @@ export const resetPassword = async (phoneNumber: string, newPassword: string) =>
     }
     throw error;
   }
+};
+
+export interface LoginResponse {
+  success: boolean;
+  token?: string;
+  user?: {
+    id: number;
+    username: string;
+    phone_number: string;
+  };
+  message?: string;
+}
+
+export const verifyLogin = async (credentials: { username: string; password: string }): Promise<LoginResponse> => {
+  try {
+    const response = await fetch('http://localhost:3000/api/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(credentials),
+    });
+
+    // Check if response is JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error('Server error: Invalid response format');
+    }
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Login failed');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Login error:', error);
+    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      throw new Error('Unable to connect to server. Please check if the server is running.');
+    }
+    throw error;
+  }
 }; 

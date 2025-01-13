@@ -68,7 +68,7 @@ const ForgotPassword = ({ onReturn }: { onReturn: () => void }) => {
       const url = 'https://apps.mnotify.net/smsapi';
       
       const formattedPhone = phone.replace('+', '').trim();
-      
+       
       const formData = new URLSearchParams();
       formData.append('key', 'TUX6IqmI8FGQEjY2isJROxxCP');
       formData.append('to', formattedPhone);
@@ -205,30 +205,18 @@ const ForgotPassword = ({ onReturn }: { onReturn: () => void }) => {
         ? cleanedPhoneNumber 
         : '0' + cleanedPhoneNumber.slice(3);
 
-      // Validate that security answer is not empty
-      if (!securityAnswer.trim()) {
-        setErrorMessage('Please enter your security answer');
-        setShowErrorModal(true);
-        setLoading(false);
-        return;
-      }
-
       const isValid = await verifySecurityAnswer(formattedNumber, securityAnswer);
       
       if (isValid) {
         setShowSecurityQuestion(false);
         setShowNewPasswordForm(true);
       } else {
-        setErrorMessage('The security answer you entered is incorrect. Please try again.');
+        setErrorMessage('Invalid security answer. Please try again.');
         setShowErrorModal(true);
       }
     } catch (error) {
       console.error('Security answer verification error:', error);
-      setErrorMessage(
-        error instanceof Error 
-          ? error.message 
-          : 'Unable to verify your security answer. Please try again.'
-      );
+      setErrorMessage(error instanceof Error ? error.message : 'Verification failed');
       setShowErrorModal(true);
     } finally {
       setLoading(false);

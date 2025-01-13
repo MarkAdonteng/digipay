@@ -3,11 +3,15 @@ import cors from 'cors';
 import { createUser, UserData } from './db';
 import { pool } from './db';
 import bcryptjs from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 const app = express();
 const port = 3000;
 
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
 app.use(express.json());
 
 app.post('/api/users', async (req, res) => {
@@ -145,6 +149,64 @@ app.post('/api/users/update-password', async (req, res) => {
   }
 });
 
+app.post('/api/login', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { username, password } = req.body;
+    console.log('Login attempt:', { username }); // Debug log
+
+    const result = await client.query(
+      'SELECT * FROM users WHERE username = $1',
+      [username]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid username or password'
+      });
+    }
+
+    const user = result.rows[0];
+    const isValidPassword = await bcryptjs.compare(password, user.password);
+
+    if (!isValidPassword) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid username or password'
+      });
+    }
+
+    const token = jwt.sign(
+      { userId: user.id, username: user.username },
+      'your-secret-key',
+      { expiresIn: '24h' }
+    );
+
+    // Remove password from response
+    delete user.password;
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        phone_number: user.phone_number
+      }
+    });
+
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred during login'
+    });
+  } finally {
+    client.release();
+  }
+});
+
 app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+  console.log(`Server running on http://localhost:${port}`);
 }); 
